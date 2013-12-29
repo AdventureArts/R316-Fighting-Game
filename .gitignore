@@ -1,1 +1,4 @@
-*[meta]
+# Arquivos desnecessários que o Unity cria #
+############################################
+
+*.meta
