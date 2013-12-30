@@ -1,7 +1,6 @@
 ﻿/* MovementController.js
-		Este script representa o comportamento de combate dos personagens. Aqui
-	estao os procedimentos de detecçao de colisao e configuraçao dos sinais usados
-	no Animator para começar e terminar as animaçoes de golpes.
+		Este script representa o comportamento de movimentaçao dos personagens. 
+	Aqui esta o tratamento de entradas para movimentar o personagem no eixo X.
 */
 
 // Desabilita a tipagem dinamica.
