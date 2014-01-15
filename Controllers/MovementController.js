@@ -36,6 +36,7 @@ function Start()
 // Funçao de tratamento de inicio de colisao.
 function OnCollisionEnter(collisionInfo : Collision)
 {
+	// Se o objeto colidido nao for o chao, retorna.
 	if (collisionInfo.gameObject.tag != floorTag)
 	{
 		return;
