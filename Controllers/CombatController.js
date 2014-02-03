@@ -7,39 +7,88 @@
 // Desabilita a tipagem dinamica.
 #pragma strict
 
-// Tag para estado de detecçao de colisao
-var hitTag : String;
-var hitTagHash : int;
+private var idleName : String;			// Nome do estado ocioso.
+private var idleNameHash : int;			// "Codigo" do estado ocioso.
+private var movingName : String;		// Nome do estado "movendo-se".
+private var movingNameHash : int;		// "Codigo" do estado "movendo-se".
+private var hitTag : String;			// Tag para estado de detecçao de colisao
+private var hitTagHash : int;
+private var playerTag : String;			// Tag para player.
+private var lastStateNameHash : int;	// Guarda a "Codigo" do nome do ultimo estado.
+private var currentStateNameHash : int;	// Guarda a "Codigo" do nome do estado atual.
+private var lastCollisionStateNameHash : int;	// Guarda a "Codigo" do nome do ultimo estado para detecçao de colisao.
+private var anim : Animator;	// Referencia ao Animator com as animaçoes dos golpes e movimentos do personagem.
+private var beating : boolean;
 
-// Tag para player.
-var playerTag : String;
-
-// Guarda a hash do nome do ultimo estado.
-var lastStateNameHash : int;
-
-// Referencia ao Animator com as animaçoes dos golpes e movimentos do personagem.
-var anim : Animator;
+// Tipos de golpes existentes.
+enum HitTypes
+{
+	faceHit		// Golpe no rosto.
+};
 
 // Configuraçao inicial.
 function Start()
 {
 	Debug.Log("Estou controlando " + gameObject.name);
 	
+	// Referencia ao Animator usado por este objeto.
 	anim = gameObject.GetComponent(Animator);
 	
+	// Nome e "Codigo" do estado ocioso.
+	idleName = "Base Layer.idle";
+	idleNameHash = Animator.StringToHash(idleName);
+	
+	// Nome e "Codigo" do estado "movendo-se".
+	movingName = "Base Layer.walking";
+	movingNameHash = Animator.StringToHash(movingName);
+	
+	// Tag para os estados que solicitam tratamento de golpes.
 	hitTag = "HitDetection";
 	hitTagHash = Animator.StringToHash(hitTag);
 	
+	// Tag que identifica outro jogador.
 	playerTag = "Player";
 	
+	// Podemos assumir que o primeiro e ultimo estados acionados sao nulos.
 	lastStateNameHash = 0;
+	currentStateNameHash = 0;
+	
+	lastCollisionStateNameHash = 0;
+	
+	// O personagem nao começa batendo.
+	beating = false;
+}
+
+// Funçao do tipo get, que retorna se o personagem esta batendo ou nao.
+function isBeating() : boolean
+{
+	return beating;
+}
+
+// Atualiza os codigos de atual e ultima estados visitados.
+function updateStatePointers()
+{
+	if (anim == null) return;
+	if (currentStateNameHash == anim.GetCurrentAnimatorStateInfo(0).nameHash) return;
+
+	lastStateNameHash = currentStateNameHash;
+	currentStateNameHash = anim.GetCurrentAnimatorStateInfo(0).nameHash;
 }
 
 // Funçao que desabilita todos os sinais de golpes.
 function setInitialHitSignals()
 {
+	updateStatePointers();
+
+	if (currentStateNameHash == idleNameHash && lastStateNameHash != movingNameHash)
+	{
+		beating = false;
+	}
+	else return;
+
 	anim.SetBool("punch", false);
 	anim.SetBool("upperKick", false);
+	anim.SetBool("faceHit", false);
 }
 
 // Funçao que trata as colisoes e aplica o golpe adequado.
@@ -48,7 +97,7 @@ function collisionDetection(collision : Collision)
 	// Se nao estiver num estado de detecçao de colisao, entao retorna.
 	if (anim.GetCurrentAnimatorStateInfo(0).tagHash != hitTagHash)
 	{
-		lastStateNameHash = 0;
+		lastCollisionStateNameHash = 0;
 		return;
 	}
 	
@@ -56,16 +105,16 @@ function collisionDetection(collision : Collision)
 	if (collision.gameObject.tag == playerTag)
 	{
 		// Caso esteja duplicando o golpe num mesmo estado, retorna.
-		if (anim.GetCurrentAnimatorStateInfo(0).nameHash == lastStateNameHash)
+		if (anim.GetCurrentAnimatorStateInfo(0).nameHash == lastCollisionStateNameHash)
 		{
 			return;
 		}
 		else
 		{
-			lastStateNameHash = anim.GetCurrentAnimatorStateInfo(0).nameHash;
+			lastCollisionStateNameHash = anim.GetCurrentAnimatorStateInfo(0).nameHash;
 		}
 		
-		Debug.Log("Pow " + lastStateNameHash);
+		Debug.Log("Pow " + lastCollisionStateNameHash);
 	}
 }
 
@@ -92,9 +141,11 @@ function Update()
 	if (Input.GetButtonDown("Fire1"))
 	{
 		anim.SetBool("punch", true);
+		beating = true;
 	}
 	else if (Input.GetButtonDown("Fire2"))
 	{
 		anim.SetBool("upperKick", true);
+		beating = true;
 	}
 }

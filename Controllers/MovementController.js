@@ -21,6 +21,7 @@ private var rigBody : Rigidbody;	// Referencia ao controlador de fisica.
 private var playerTag : String;		// Tag para player.
 private var oponent : GameObject;	// Referencia ao oponente.
 private var opMovController : MovementController;	// Controlador de movimento do oponente.
+private var combatController : CombatController;	// Controlador de combate do deste personagem.
 private var momentaryDistance : float;		// Distancia atual com o oponente.
 private var momentaryMinDistance : float;	// Distancia minima atual com o oponente.
 private var momentarySpeed : float = 0;		// Velocidade momentanea.
@@ -33,6 +34,9 @@ function Start()
 	// Adiquire as referencia do Animator e do RigidBody.
 	anim = gameObject.GetComponent(Animator);
 	rigBody = gameObject.GetComponent(Rigidbody);
+	
+	// Adquire a referencia ao controlador de combate deste personagem.
+	combatController = this.GetComponent(CombatController);
 	
 	// Limita a fisica do personagem, liberando somente o movimento em Y.
 	rigBody.constraints = RigidbodyConstraints.FreezeRotation;
@@ -59,6 +63,7 @@ function getNearestOponent()
 	var nearest : float;
 	var nearestOponent : GameObject;
 	var distance : float;
+	var str : String;
 	
 	oponent = null;
 	nearestOponent = null;
@@ -68,6 +73,7 @@ function getNearestOponent()
 	
 	for (var op : GameObject in oponents)
 	{
+		if (op.name.EndsWith("(Clone)")) continue;
 		if (op == gameObject) continue;
 		
 		distance = Vector3.Distance(op.transform.position, this.transform.position);
@@ -78,6 +84,8 @@ function getNearestOponent()
 			nearestOponent = op;
 		}
 	}
+	
+	if (nearestOponent == null) return;
 	
 	oponent = nearestOponent;
 	
@@ -132,6 +140,8 @@ function ajustPosition()
 {
 	ajustDirection();
 	
+	if (combatController.isBeating()) return;
+	
 	momentarySpeed = direction * speed * Time.deltaTime;
 	position.x += momentarySpeed;
 	position.y = transform.position.y;
@@ -165,7 +175,8 @@ function minDistanceFromOponent() : boolean
 	if (oponent == null) getNearestOponent();
 	
 	// Caso nao haja um oponente na cena, retorna.
-	if (oponent == null) return;
+	if (oponent == null) return false;
+	else if (opMovController == null) return false;
 	
 	momentaryDistance = Vector3.Distance(position, oponent.transform.position);
 	momentaryMinDistance = momentaryDistance - opMovController.minDistance;
@@ -191,9 +202,22 @@ function Update()
 	// Movimenta o personagem.
 	ajustPosition();
 	
-	// O sinal "direction" do Animator e setado.
-	anim.SetFloat("direction", direction);
-	
-	// O sinal "speed" do Animator e setado.
-	anim.SetFloat("speed", Mathf.Abs(direction * speed));
+	// Testa a referencia antes de usar...
+	if (combatController == null)
+	{
+		return;
+	}
+	else if (combatController.isBeating()) // O personagem esta batendo?
+	{
+		// O personagem nao deve se mover enquanto estiver batendo.
+		anim.SetBool("moving", false);
+	}
+	else if (direction != 0) // O personagem esta se movendo de fato?
+	{
+		anim.SetBool("moving", true);
+	}
+	else
+	{
+		anim.SetBool("moving", false);
+	}
 }
