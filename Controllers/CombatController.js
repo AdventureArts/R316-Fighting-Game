@@ -18,7 +18,12 @@ private var lastStateNameHash : int;	// Guarda a "Codigo" do nome do ultimo esta
 private var currentStateNameHash : int;	// Guarda a "Codigo" do nome do estado atual.
 private var lastCollisionStateNameHash : int;	// Guarda a "Codigo" do nome do ultimo estado para detecçao de colisao.
 private var anim : Animator;	// Referencia ao Animator com as animaçoes dos golpes e movimentos do personagem.
-private var beating : boolean;
+private var beating : boolean;			// Este personagem esta batendo?
+private var opCombatController : CombatController;	// Referencia do controlador de combate do oponente.
+private var gotHitStateNames : String[];	// Nome dos estados de reaçoes a golpes.
+private var gotHitStateHashes : int[];	// "Codogo" dos estados de reaçoes a golpes.
+
+var desable : boolean;		// O tratamento de entradas acontecera?
 
 // Tipos de golpes existentes.
 enum HitTypes
@@ -57,6 +62,16 @@ function Start()
 	
 	// O personagem nao começa batendo.
 	beating = false;
+	
+	gotHitStateNames = new String[1];
+	gotHitStateHashes = new int[1];
+	
+	gotHitStateNames[0] = "faceHit";
+	
+	for (var i : int = 0; i < 1; i++)
+	{
+		gotHitStateHashes[i] = Animator.StringToHash("Base Layer." + gotHitStateNames[i]);
+	}
 }
 
 // Funçao do tipo get, que retorna se o personagem esta batendo ou nao.
@@ -80,6 +95,14 @@ function setInitialHitSignals()
 {
 	updateStatePointers();
 
+	for (var i : int = 0; i < 1; i++)
+	{
+		if (currentStateNameHash == gotHitStateHashes[i])
+		{
+			anim.SetBool(gotHitStateNames[i], false);
+		}
+	}
+
 	if (currentStateNameHash == idleNameHash && lastStateNameHash != movingNameHash)
 	{
 		beating = false;
@@ -88,7 +111,14 @@ function setInitialHitSignals()
 
 	anim.SetBool("punch", false);
 	anim.SetBool("upperKick", false);
-	anim.SetBool("faceHit", false);
+}
+
+function gotHit(hitType : HitTypes)
+{
+	if (hitType == HitTypes.faceHit)
+	{
+		anim.SetBool("faceHit", true);
+	}
 }
 
 // Funçao que trata as colisoes e aplica o golpe adequado.
@@ -115,6 +145,10 @@ function collisionDetection(collision : Collision)
 		}
 		
 		Debug.Log("Pow " + lastCollisionStateNameHash);
+		
+		opCombatController = collision.gameObject.GetComponent(CombatController);
+		
+		if (opCombatController != null) opCombatController.gotHit(HitTypes.faceHit);
 	}
 }
 
@@ -136,6 +170,8 @@ function Update()
 {
 	// Volta para o estado inicial.
 	setInitialHitSignals();
+
+	if (desable) return;
 
 	// Teste temporario para procedimento de golpe generico.
 	if (Input.GetButtonDown("Fire1"))
